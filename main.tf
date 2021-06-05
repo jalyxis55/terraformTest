@@ -1,36 +1,18 @@
-// This is a test to deploy an EC2 server with Terraform
+// Launch configuration for web servers (Should use Launch Template instead)
 
-// Configure AWS as provider and deploy in us-east-2 data center
-provider "aws" {
-	region = "us-east-2"
-}
+resource "aws_launch_configuration" "example" {
+	image_id = "ami-0c55b159cbfafe1f0"
+	instance_type = "t2.micro"
+	security_groups = [aws_security_group.instance.id]
 
-/* variable "NAME" {
-	[CONFIG ...]
-}
-variable "server_port" {
-	description	= "The port used for HTTP requests by server"
-	type 		= number
-	default		= 8080
-}*/
+	user_data = <<-EOF
+	            #!/bin/bash
+	            echo "Hello, World" > index.html
+	            nohup busybox httpd -f -p 8080 &
+	            EOF
 
-// Specify resource to deploy (EC2 instance in this case)
-/* resource "PROVIDER_TYPE" "NAME" {
-	    [CONFIG ...]
-} */
-resource "aws_instance" "exampleServer" {
-	ami						= "ami-0c55b159cbfafe1f0"
-	instance_type 			= "t2.micro"
-	vpc_security_group_ids 	= [aws_security_group.instance.id]
-
-	user_data		= <<-EOF
-					  #!/bin/bash
-					  echo "Hello, World!" > index.html
-					  nohup busybox httpd -f -p 8080 &
-					  EOF
-
-	tags = {
-		Name = "terraform-example"
+	lifecycle {
+	    create_before_destroy = true
 	}
 }
 
@@ -38,10 +20,68 @@ resource "aws_security_group" "instance" {
 	name = "terraform-example-instance"
 
 	ingress {
-		from_port	= 8080
-		to_port		= 8080
-		protocol	= "tcp"
-		cidr_blocks	= ["0.0.0.0/0"]
+	    from_port = 8080
+	    to_port = 8080
+	    protocol = "tcp"
+	    cidr_blocks = ["0.0.0.0/0"]
+	}
+}
+
+resource "aws_autoscaling_group" "example" {
+	launch_configuration = aws_launch_configuration.example.id
+	availability_zones = data.aws_availability_zones.all.names
+
+	min_size = 2
+	max_size = 10
+
+	load_balancers = [aws_elb.example.name]
+	health_check_type = "ELB"
+
+	tag {
+	    key = "Name"
+	    value = "terraform-asg-example"
+	    propagate_at_launch = true
+	}
+}
+
+resource "aws_elb" "example" {
+	name = "terraform-asg-example"
+	security_groups = [aws_security_group.elb.id]
+	availability_zones = data.aws_availability_zones.all.names
+
+	health_check {
+	    target = "HTTP:8080/"
+	    interval = 30
+	    timeout = 3
+	    healthy_threshold = 2
+	    unhealthy_threshold = 2
+	}
+
+	listener{
+	    lb_port = 80
+	    lb_protocol = "http"
+	    instance_port = 8080
+	    instance_protocol = "http"
+	}
+}
+
+resource "aws_security_group" "elb" {
+	name = "terraform-example-elb"
+
+	# Outbound traffic
+	egress {
+	    from_port = 0
+	    to_port = 0
+	    protocol = "-1"
+	    cidr_blocks = ["0.0.0.0/0"]
+	}
+
+	# Inbound traffic
+	ingress {
+	    from_port = 80
+	    to_port = 80
+	    protocol = "tcp"
+	    cidr_blocks = ["0.0.0.0/0"]
 	}
 }
 
@@ -50,7 +90,7 @@ resource "aws_security_group" "instance" {
 	value = <VALUE>
 	[CONFIG...]
 } */
-output "public_ip" {
-	value = aws_instance.exampleServer.public_ip
-	description = "The public IP of the web server"
+output "clb_dns_name" {
+	value = aws_elb.example.dns_name
+	description = "The domain name of the load balancer for testing"
 }
