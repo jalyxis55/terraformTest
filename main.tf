@@ -5,6 +5,14 @@ provider "aws" {
 	region = "us-east-2"
 }
 
+/* variable "NAME" {
+	[CONFIG ...]
+} */
+variable "server_port" {
+	description	= "The port used for HTTP requests by server"
+	type 		= 8080
+}
+
 // Specify resource to deploy (EC2 instance in this case)
 /* resource "PROVIDER_TYPE" "NAME" {
 	    [CONFIG ...]
@@ -17,7 +25,7 @@ resource "aws_instance" "exampleServer" {
 	user_data		= <<-EOF
 					  #!/bin/bash
 					  echo "Hello, World!" > index.html
-					  nohup busybox httpd -f -p 8080 &
+					  nohup busybox httpd -f -p "{var.server_port}" &
 					  EOF
 
 	tags = {
@@ -29,9 +37,19 @@ resource "aws_security_group" "instance" {
 	name = "terraform-example-instance"
 
 	ingress {
-		from_port	= 8080
-		to_port		= 8080
+		from_port	= var.server_port
+		to_port		= var.server_port
 		protocol	= "tcp"
 		cidr_blocks	= ["0.0.0.0/0"]
 	}
+}
+
+/* This outputs the public IP of the EC2 instance when running "terraform apply" */
+/* output = "NAME" {
+	value = <VALUE>
+	[CONFIG...]
+} */
+output "public_ip" {
+	value = aws_instance.exampleServer.public_ip
+	description = "The public IP of the web server"
 }
