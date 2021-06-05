@@ -33,7 +33,7 @@ resource "aws_security_group" "instance" {
 
 resource "aws_autoscaling_group" "example" {
 	launch_configuration = aws_launch_configuration.example.id
-	availability_zones = ["us-east-2", "us-east-1"]
+	availability_zones = ["us-east-2"]
 
 	min_size = 2
 	max_size = 10
@@ -51,7 +51,7 @@ resource "aws_autoscaling_group" "example" {
 resource "aws_elb" "example" {
 	name = "terraform-asg-example"
 	security_groups = [aws_security_group.elb.id]
-	availability_zones = ["us-east-2", "us-east-1"]
+	availability_zones = ["us-east-2"]
 
 	health_check {
 	    target = "HTTP:8080/"
