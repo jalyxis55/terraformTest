@@ -1,5 +1,9 @@
 // Launch configuration for web servers (Should use Launch Template instead)
 
+provider "aws" {
+	region = "us-east-2"
+}
+
 resource "aws_launch_configuration" "example" {
 	image_id = "ami-0c55b159cbfafe1f0"
 	instance_type = "t2.micro"
