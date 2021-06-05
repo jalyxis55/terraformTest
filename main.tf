@@ -10,7 +10,8 @@ provider "aws" {
 } */
 variable "server_port" {
 	description	= "The port used for HTTP requests by server"
-	type 		= 8080
+	type 		= number
+	default		= 8080
 }
 
 // Specify resource to deploy (EC2 instance in this case)
