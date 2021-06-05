@@ -51,7 +51,7 @@ resource "aws_autoscaling_group" "example" {
 resource "aws_elb" "example" {
 	name = "terraform-asg-example"
 	security_groups = [aws_security_group.elb.id]
-	availability_zones = data.aws_availability_zones.all.names
+	availability_zones = ["us-east-2", "us-east-1"]
 
 	health_check {
 	    target = "HTTP:8080/"
